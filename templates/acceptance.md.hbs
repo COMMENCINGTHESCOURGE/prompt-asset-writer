@@ -1,0 +1,26 @@
+---
+title: "{{title}}"
+feature: "{{feature}}"
+tester: "{{tester}}"
+type: "acceptance"
+---
+
+# Acceptance: {{title}}
+
+## Feature
+{{feature}}
+
+## Test Cases
+{{#each testCases}}
+### {{id}}: {{description}}
+- **Expected**: {{expected}}
+- **Result**: ▢ Pass  ▢ Fail
+
+{{/each}}
+{{#if notes}}
+## Notes
+{{notes}}
+{{/if}}
+---
+
+*Signed: ____________________  Date: _____________*

@@ -1,0 +1,20 @@
+---
+title: "{{title}}"
+version: "{{version}}"
+---
+
+# Changelog
+
+{{#each entries}}
+## {{version}} — {{date}}
+
+{{#each changes}}
+- {{this}}
+{{/each}}
+{{/each}}
+{{#if contributors}}
+## Contributors
+{{#each contributors}}
+- {{this}}
+{{/each}}
+{{/if}}

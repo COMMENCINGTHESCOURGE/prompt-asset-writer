@@ -1,0 +1,34 @@
+---
+title: "{{title}}"
+version: "{{version}}"
+author: "{{author}}"
+type: "spec"
+---
+
+# Specification: {{title}}
+
+## Overview
+{{overview}}
+
+## API
+{{#each endpoints}}
+### {{method}} {{path}}
+{{description}}
+
+**Request:**
+{{#if request}}
+```json
+{{{request}}}
+```
+{{/if}}
+
+**Response:**
+{{#if response}}
+```json
+{{{response}}}
+```
+{{/if}}
+{{/each}}
+
+## Notes
+{{notes}}

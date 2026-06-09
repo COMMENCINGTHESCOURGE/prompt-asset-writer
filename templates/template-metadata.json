@@ -1,0 +1,91 @@
+{
+  "prompt.md.hbs": {
+    "description": "Standard prompt document with frontmatter, purpose, requirements, and acceptance criteria",
+    "variables": {
+      "title": { "type": "string", "required": true, "description": "Document title" },
+      "phase": { "type": "string", "required": true, "description": "Project phase (e.g. design, implement, review)" },
+      "author": { "type": "string", "required": true, "description": "Document author" },
+      "purpose": { "type": "string", "required": true, "description": "Purpose statement" },
+      "requirements": { "type": "string[]", "required": true, "description": "List of requirements" },
+      "acceptance": { "type": "string[]", "required": true, "description": "Acceptance criteria" }
+    },
+    "vinculum": {
+      "preserves": ["structured frontmatter metadata", "enumerated requirements list", "enumerated acceptance criteria", "consistent document shape across prompts"],
+      "sacrifices": ["free-form narrative sections", "non-enumerable criteria", "visual/rich formatting", "inline code or diagrams"]
+    }
+  },
+  "manifest.md.hbs": {
+    "description": "Project manifest declaring scope, stakeholders, milestones, and dependencies",
+    "variables": {
+      "title": { "type": "string", "required": true, "description": "Project title" },
+      "version": { "type": "string", "required": true, "description": "Manifest version" },
+      "author": { "type": "string", "required": true, "description": "Manifest author" },
+      "scope": { "type": "string", "required": true, "description": "Project scope statement" },
+      "stakeholders": { "type": "string[]", "required": true, "description": "List of stakeholders" },
+      "milestones": { "type": "string[]", "required": true, "description": "Key milestones" },
+      "dependencies": { "type": "string[]", "required": false, "description": "External dependencies" }
+    },
+    "vinculum": {
+      "preserves": ["declared project scope", "enumerated stakeholder list", "milestone timeline structure", "dependency tracking"],
+      "sacrifices": ["budget/financial details", "technical architecture", "risk register", "resource allocation plan"]
+    }
+  },
+  "acceptance.md.hbs": {
+    "description": "Acceptance test document with test cases, pass criteria, and sign-off",
+    "variables": {
+      "title": { "type": "string", "required": true, "description": "Acceptance document title" },
+      "feature": { "type": "string", "required": true, "description": "Feature under test" },
+      "tester": { "type": "string", "required": true, "description": "Tester name" },
+      "testCases": { "type": "object[]", "required": true, "description": "Array of test case objects with id, description, expected" },
+      "notes": { "type": "string", "required": false, "description": "Additional notes" }
+    },
+    "vinculum": {
+      "preserves": ["structured test case enumeration", "explicit pass/fail criteria", "tester accountability", "feature-scoped verification"],
+      "sacrifices": ["automated test execution", "regression test history", "environment configuration details", "performance benchmarks"]
+    }
+  },
+  "changelog.md.hbs": {
+    "description": "Changelog document with version entries, change lists, and contributors",
+    "variables": {
+      "title": { "type": "string", "required": true, "description": "Project title" },
+      "version": { "type": "string", "required": true, "description": "Current version" },
+      "entries": { "type": "object[]", "required": true, "description": "Array of changelog entries with version, date, and changes array" },
+      "contributors": { "type": "string[]", "required": false, "description": "List of contributors" }
+    },
+    "vinculum": {
+      "preserves": ["structured version history", "enumerated change lists", "contributor attribution", "chronological ordering"],
+      "sacrifices": ["semantic version diff details", "breaking change categorization", "commit-level granularity", "release artifact links"]
+    }
+  },
+  "spec.md.hbs": {
+    "description": "API specification document with endpoints, request/response schemas",
+    "variables": {
+      "title": { "type": "string", "required": true, "description": "Spec title" },
+      "version": { "type": "string", "required": true, "description": "Spec version" },
+      "author": { "type": "string", "required": true, "description": "Author name" },
+      "overview": { "type": "string", "required": true, "description": "High-level overview" },
+      "endpoints": { "type": "object[]", "required": false, "description": "Array of endpoint objects with method, path, description, request, response" },
+      "notes": { "type": "string", "required": false, "description": "Additional notes" }
+    },
+    "vinculum": {
+      "preserves": ["structured endpoint documentation", "request/response schema clarity", "version tracking"],
+      "sacrifices": ["live API testing", "authentication details", "rate limit documentation", "environment-specific config"]
+    }
+  },
+  "report.md.hbs": {
+    "description": "Findings report with severity, impact, recommendations, and action items",
+    "variables": {
+      "title": { "type": "string", "required": true, "description": "Report title" },
+      "author": { "type": "string", "required": true, "description": "Author name" },
+      "date": { "type": "string", "required": true, "description": "Report date" },
+      "summary": { "type": "string", "required": true, "description": "Executive summary" },
+      "findings": { "type": "object[]", "required": false, "description": "Array of finding objects with title, description, severity, impact" },
+      "recommendations": { "type": "string[]", "required": false, "description": "List of recommendations" },
+      "nextSteps": { "type": "string[]", "required": false, "description": "List of action items" }
+    },
+    "vinculum": {
+      "preserves": ["structured finding enumeration", "severity classification", "action item tracking", "accountability via author field"],
+      "sacrifices": ["automated remediation", "timeline tracking", "resource estimation", "dependency graph between findings"]
+    }
+  }
+}

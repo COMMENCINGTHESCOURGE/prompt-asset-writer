@@ -1,34 +1,229 @@
+#!/usr/bin/env node
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const commander_1 = require("commander");
+const handlebars_1 = __importDefault(require("handlebars"));
 const fs_extra_1 = __importDefault(require("fs-extra"));
 const path_1 = __importDefault(require("path"));
+const atomic_writer_1 = require("./atomic-writer");
+const templates_1 = require("./templates");
+const validate_1 = require("./validate");
+const vinculum_1 = require("./vinculum");
+const config_1 = require("./config");
 const program = new commander_1.Command();
+function resolveData(raw) {
+    if (raw.startsWith('@')) {
+        const filePath = raw.slice(1);
+        return fs_extra_1.default.readJsonSync(filePath);
+    }
+    return JSON.parse(raw);
+}
 program
     .name('prompt-asset-writer')
     .description('Generate prompts, manifests, and acceptance docs from templates')
-    .version('0.1.0');
+    .version('0.2.0');
 program
     .command('generate')
     .description('Render a template to file')
     .requiredOption('-t, --template <name>', 'Template filename in templates/')
     .requiredOption('-o, --out <path>', 'Output file path')
-    .option('-d, --data <json>', 'JSON data for template', '{}')
+    .option('-d, --data <json>', 'JSON data or @file.json', '{}')
+    .option('--no-validate', 'Skip data validation')
     .action((opts) => {
-    const templatePath = path_1.default.join(__dirname, '..', 'templates', opts.template);
-    if (!fs_extra_1.default.existsSync(templatePath)) {
+    const info = (0, templates_1.get)(opts.template);
+    if (!info) {
         console.error(`Template not found: ${opts.template}`);
+        console.error(`Available templates: ${(0, templates_1.list)().join(', ')}`);
         process.exit(1);
     }
-    const template = fs_extra_1.default.readFileSync(templatePath, 'utf-8');
-    const context = JSON.parse(opts.data);
-    const Handlebars = require('handlebars');
-    const output = Handlebars.compile(template)(context);
-    fs_extra_1.default.ensureDirSync(path_1.default.dirname(opts.out));
-    fs_extra_1.default.writeFileSync(opts.out, output);
+    let context;
+    try {
+        context = resolveData(opts.data);
+    }
+    catch (e) {
+        console.error(`Failed to parse data: ${e.message}`);
+        process.exit(1);
+    }
+    if (opts.validate) {
+        const result = (0, validate_1.validateData)(info.metadata, context);
+        if (!result.valid) {
+            console.error('Validation failed:');
+            for (const err of result.errors)
+                console.error(`  ${err}`);
+            process.exit(1);
+        }
+        for (const warn of result.warnings)
+            console.warn(`  ${warn}`);
+    }
+    const output = handlebars_1.default.compile(info.content)(context);
+    (0, atomic_writer_1.writeAtomic)(opts.out, output);
     console.log(`Wrote: ${opts.out}`);
+});
+program
+    .command('list')
+    .description('List available templates')
+    .action(() => {
+    const templates = (0, templates_1.list)();
+    if (templates.length === 0) {
+        console.log('No templates found.');
+        return;
+    }
+    console.log('Available templates:');
+    for (const t of templates) {
+        const info = (0, templates_1.get)(t);
+        if (info && info.metadata.description) {
+            console.log(`  ${t}  — ${info.metadata.description}`);
+        }
+        else {
+            console.log(`  ${t}`);
+        }
+    }
+});
+program
+    .command('analyze')
+    .description('Analyze a template through the vinculum lens')
+    .requiredOption('-t, --template <name>', 'Template filename in templates/')
+    .option('-d, --data <json>', 'JSON data or @file.json')
+    .option('-o, --out <path>', 'Write analysis report to file')
+    .action((opts) => {
+    const info = (0, templates_1.get)(opts.template);
+    if (!info) {
+        console.error(`Template not found: ${opts.template}`);
+        console.error(`Available templates: ${(0, templates_1.list)().join(', ')}`);
+        process.exit(1);
+    }
+    let context;
+    if (opts.data) {
+        try {
+            context = resolveData(opts.data);
+        }
+        catch (e) {
+            console.error(`Failed to parse data: ${e.message}`);
+            process.exit(1);
+        }
+    }
+    const report = (0, vinculum_1.analyze)(info, context);
+    const formatted = (0, vinculum_1.formatReport)(report);
+    if (opts.out) {
+        (0, atomic_writer_1.writeAtomic)(opts.out, formatted);
+        console.log(`Wrote: ${opts.out}`);
+    }
+    else {
+        console.log(formatted);
+    }
+});
+program
+    .command('validate')
+    .description('Validate data against a template schema')
+    .requiredOption('-t, --template <name>', 'Template filename in templates/')
+    .requiredOption('-d, --data <json>', 'JSON data or @file.json')
+    .action((opts) => {
+    const info = (0, templates_1.get)(opts.template);
+    if (!info) {
+        console.error(`Template not found: ${opts.template}`);
+        console.error(`Available templates: ${(0, templates_1.list)().join(', ')}`);
+        process.exit(1);
+    }
+    let context;
+    try {
+        context = resolveData(opts.data);
+    }
+    catch (e) {
+        console.error(`Failed to parse data: ${e.message}`);
+        process.exit(1);
+    }
+    const result = (0, validate_1.validateData)(info.metadata, context);
+    if (result.valid) {
+        console.log('Data is valid');
+    }
+    else {
+        console.error('Validation failed:');
+        for (const err of result.errors)
+            console.error(`  ${err}`);
+        process.exit(1);
+    }
+});
+program
+    .command('init')
+    .description('Scaffold a new template')
+    .requiredOption('-n, --name <name>', 'Template filename (e.g. my-template.md.hbs)')
+    .option('-d, --description <desc>', 'Template description', 'Custom template')
+    .option('--dir <path>', 'Templates directory', 'templates')
+    .action((opts) => {
+    const name = opts.name.endsWith('.hbs') ? opts.name : `${opts.name}.hbs`;
+    const templatesDir = path_1.default.resolve(opts.dir);
+    fs_extra_1.default.ensureDirSync(templatesDir);
+    const tmplPath = path_1.default.join(templatesDir, name);
+    if (fs_extra_1.default.existsSync(tmplPath)) {
+        console.error(`Template already exists: ${tmplPath}`);
+        process.exit(1);
+    }
+    const stub = `---
+title: "{{title}}"
+---
+
+# {{title}}
+
+## Section
+{{content}}
+`;
+    fs_extra_1.default.writeFileSync(tmplPath, stub, 'utf-8');
+    console.log(`Created: ${tmplPath}`);
+    const registryPath = path_1.default.join(templatesDir, 'template-metadata.json');
+    let registry = {};
+    if (fs_extra_1.default.existsSync(registryPath)) {
+        registry = fs_extra_1.default.readJsonSync(registryPath);
+    }
+    const entry = {
+        description: opts.description,
+        variables: {
+            title: { type: 'string', required: true, description: 'Document title' },
+            content: { type: 'string', required: true, description: 'Main content' }
+        },
+        vinculum: {
+            preserves: ['structured frontmatter', 'simple content section'],
+            sacrifices: ['complex layout', 'multiple sections']
+        }
+    };
+    registry[name] = entry;
+    (0, atomic_writer_1.writeAtomic)(registryPath, JSON.stringify(registry, null, 2) + '\n');
+    console.log(`Updated: ${registryPath}`);
+});
+program
+    .command('info')
+    .description('Show project info and template statistics')
+    .action(() => {
+    const pkg = fs_extra_1.default.readJsonSync(path_1.default.join(__dirname, '..', 'package.json'));
+    const templates = (0, templates_1.list)();
+    const totalVars = templates.reduce((sum, t) => {
+        const info = (0, templates_1.get)(t);
+        return sum + (info ? Object.keys(info.metadata.variables).length : 0);
+    }, 0);
+    const requiredVars = templates.reduce((sum, t) => {
+        const info = (0, templates_1.get)(t);
+        if (!info)
+            return sum;
+        return sum + Object.values(info.metadata.variables).filter(v => v.required).length;
+    }, 0);
+    console.log(`prompt-asset-writer v${pkg.version}`);
+    console.log(`Description: ${pkg.description}`);
+    console.log(`Templates: ${templates.length}`);
+    console.log(`Total variables: ${totalVars} (${requiredVars} required)`);
+    console.log(`License: ${pkg.license}`);
+    console.log(`Node: ${pkg.engines.node}`);
+    console.log('');
+    const config = (0, config_1.getConfig)();
+    if (Object.keys(config).length > 0) {
+        console.log('Config (prompt-asset-writer.json):');
+        for (const [k, v] of Object.entries(config)) {
+            console.log(`  ${k}: ${v}`);
+        }
+    }
+    else {
+        console.log('No local config found.');
+    }
 });
 program.parse();

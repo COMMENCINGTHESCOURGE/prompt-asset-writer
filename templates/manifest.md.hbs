@@ -1,0 +1,27 @@
+---
+title: "{{title}}"
+version: "{{version}}"
+author: "{{author}}"
+type: "manifest"
+---
+
+# {{title}}
+
+## Scope
+{{scope}}
+
+## Stakeholders
+{{#each stakeholders}}
+- {{this}}
+{{/each}}
+
+## Milestones
+{{#each milestones}}
+- {{this}}
+{{/each}}
+{{#if dependencies}}
+## Dependencies
+{{#each dependencies}}
+- {{this}}
+{{/each}}
+{{/if}}

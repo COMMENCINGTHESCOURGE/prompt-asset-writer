@@ -1,0 +1,33 @@
+---
+title: "{{title}}"
+author: "{{author}}"
+date: "{{date}}"
+type: "report"
+---
+
+# {{title}}
+
+## Summary
+{{summary}}
+
+## Findings
+{{#each findings}}
+### {{title}}
+{{description}}
+
+**Severity**: {{severity}}
+
+**Impact**: {{impact}}
+
+---
+{{/each}}
+
+## Recommendations
+{{#each recommendations}}
+- {{this}}
+{{/each}}
+
+## Next Steps
+{{#each nextSteps}}
+- [ ] {{this}}
+{{/each}}
