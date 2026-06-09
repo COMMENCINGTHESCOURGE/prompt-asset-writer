@@ -9,6 +9,12 @@ import type { TemplateInfo } from './templates';
 import { validateData } from './validate';
 import { analyze, formatReport } from './vinculum';
 import { getConfig } from './config';
+import { discover, formatEcosystemReport } from './ecosystem';
+import type { EcosystemReport } from './ecosystem';
+
+Handlebars.registerHelper('join', (arr: unknown[], sep: string) => {
+  return Array.isArray(arr) ? arr.join(sep) : '';
+});
 
 const program = new Command();
 
@@ -22,8 +28,8 @@ function resolveData(raw: string): Record<string, unknown> {
 
 program
   .name('prompt-asset-writer')
-  .description('Generate prompts, manifests, and acceptance docs from templates')
-  .version('0.2.0');
+  .description('MANIFOLD documentation vinculum — generate, validate, and analyze ecosystem docs')
+  .version('0.3.0');
 
 program
   .command('generate')
@@ -236,6 +242,95 @@ program
       }
     } else {
       console.log('No local config found.');
+    }
+  });
+
+program
+  .command('ecosystem')
+  .description('Discover and analyze MANIFOLD ecosystem repos')
+  .argument('[action]', 'Action: discover, generate, validate', 'discover')
+  .option('-o, --owner <name>', 'GitHub owner', 'COMMENCINGTHESCOURGE')
+  .option('-r, --report <path>', 'Write ecosystem report to file')
+  .option('--outdir <path>', 'Output directory for generated docs', 'ecosystem-docs')
+  .action(async (action: string, opts: { owner: string; report?: string; outdir: string }) => {
+    const report = await discover(opts.owner);
+
+    switch (action) {
+      case 'discover': {
+        const formatted = formatEcosystemReport(report);
+        if (opts.report) {
+          writeAtomic(opts.report, formatted);
+          console.log(`Wrote: ${opts.report}`);
+        } else {
+          console.log(formatted);
+        }
+        break;
+      }
+
+      case 'generate': {
+        const outdir = path.resolve(opts.outdir);
+        fs.ensureDirSync(outdir);
+
+        for (const repo of report.repos) {
+          if (repo.isEmpty) continue;
+          const readme = get('repo-readme.md.hbs')!;
+          const context = {
+            name: repo.name,
+            owner: opts.owner,
+            description: repo.description || `${repo.name} — part of the MANIFOLD ecosystem`,
+            language: repo.language,
+            topics: repo.topics,
+            about: repo.description || `Part of the MANIFOLD field computation system.`,
+            setup: ''
+          };
+          const output = Handlebars.compile(readme.content)(context);
+          const outPath = path.join(outdir, `${repo.name}-README.md`);
+          writeAtomic(outPath, output);
+          console.log(`  Generated: ${outPath}`);
+        }
+
+        const vision = get('vision.md.hbs')!;
+        const visionOut = Handlebars.compile(vision.content)({});
+        writeAtomic(path.join(outdir, 'VISION.md'), visionOut);
+        console.log(`  Generated: ${path.join(outdir, 'VISION.md')}`);
+
+        const pkg = fs.readJsonSync(path.join(__dirname, '..', 'package.json'));
+        const profile = get('profile-readme.md.hbs')!;
+        const profileCtx = {
+          totalRepos: report.totalRepos,
+          languageCount: Object.keys(report.languages).length,
+          documentedRepos: report.documentedRepos
+        };
+        const profileOut = Handlebars.compile(profile.content)(profileCtx);
+        writeAtomic(path.join(outdir, 'PROFILE-README.md'), profileOut);
+        console.log(`  Generated: ${path.join(outdir, 'PROFILE-README.md')}`);
+
+        console.log(`\nDone. ${report.nonEmptyRepos} docs generated in ${outdir}`);
+        break;
+      }
+
+      case 'validate': {
+        const gaps: string[] = [];
+        for (const repo of report.repos) {
+          if (repo.isEmpty) continue;
+          if (repo.docScore < 3) {
+            gaps.push(`  ${repo.name}: score ${repo.docScore}/5 (missing ${!repo.description ? 'description ' : ''}${!repo.license ? 'license ' : ''}${repo.topics.length === 0 ? 'topics ' : ''})`);
+          }
+        }
+
+        if (gaps.length === 0) {
+          console.log(`All ${report.nonEmptyRepos} non-empty repos are well-documented (score >= 3).`);
+        } else {
+          console.log(`Documentation gaps found (${gaps.length} repos with score < 3):`);
+          console.log('');
+          for (const g of gaps) console.log(g);
+        }
+        break;
+      }
+
+      default:
+        console.error(`Unknown action: ${action}. Use discover, generate, or validate.`);
+        process.exit(1);
     }
   });
 

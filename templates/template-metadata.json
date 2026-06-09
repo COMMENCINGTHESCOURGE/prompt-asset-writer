@@ -72,6 +72,44 @@
       "sacrifices": ["live API testing", "authentication details", "rate limit documentation", "environment-specific config"]
     }
   },
+  "profile-readme.md.hbs": {
+    "description": "GitHub profile README for the MANIFOLD ecosystem",
+    "variables": {
+      "totalRepos": { "type": "number", "required": true, "description": "Total repository count" },
+      "languageCount": { "type": "number", "required": true, "description": "Number of programming languages used" },
+      "documentedRepos": { "type": "number", "required": true, "description": "Well-documented repository count" }
+    },
+    "vinculum": {
+      "preserves": ["ecosystem overview", "consistent branding", "entity transparency"],
+      "sacrifices": ["individual repo details", "contribution history", "real-time activity feed"]
+    }
+  },
+  "repo-readme.md.hbs": {
+    "description": "Standardized MANIFOLD repository README with entity footer",
+    "variables": {
+      "name": { "type": "string", "required": true, "description": "Repository name" },
+      "owner": { "type": "string", "required": true, "description": "GitHub owner" },
+      "description": { "type": "string", "required": true, "description": "Repository description" },
+      "language": { "type": "string", "required": false, "description": "Primary language" },
+      "topics": { "type": "string[]", "required": false, "description": "Repository topics" },
+      "about": { "type": "string", "required": true, "description": "About section content" },
+      "setup": { "type": "string", "required": false, "description": "Setup instructions" }
+    },
+    "vinculum": {
+      "preserves": ["consistent cross-repo documentation", "entity footer", "quick start standardization"],
+      "sacrifices": ["repo-specific customization", "detailed architecture docs"]
+    }
+  },
+  "vision.md.hbs": {
+    "description": "MANIFOLD vision document explaining field computation philosophy",
+    "variables": {
+      "title": { "type": "string", "required": false, "description": "Vision document title" }
+    },
+    "vinculum": {
+      "preserves": ["philosophical foundation", "ecosystem map", "vinculum principles"],
+      "sacrifices": ["implementation details", "technical roadmap", "version-specific guidance"]
+    }
+  },
   "report.md.hbs": {
     "description": "Findings report with severity, impact, recommendations, and action items",
     "variables": {

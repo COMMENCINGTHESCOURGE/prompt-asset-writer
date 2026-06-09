@@ -27,4 +27,14 @@ describe('templates', () => {
     expect(info!.metadata.vinculum.preserves.length).toBeGreaterThan(0);
     expect(info!.metadata.vinculum.sacrifices.length).toBeGreaterThan(0);
   });
+
+  it('all 9 templates have metadata entries', () => {
+    const templates = list();
+    expect(templates.length).toBe(9);
+    for (const t of templates) {
+      const info = get(t);
+      expect(info!.metadata.description).toBeTruthy();
+      expect(Object.keys(info!.metadata.variables).length).toBeGreaterThan(0);
+    }
+  });
 });

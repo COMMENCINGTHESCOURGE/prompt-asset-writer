@@ -7,3 +7,5 @@ export { analyze, formatReport } from './vinculum';
 export type { VinculumReport } from './vinculum';
 export { getConfig, resetConfig } from './config';
 export type { PawConfig } from './config';
+export { discover, formatEcosystemReport } from './ecosystem';
+export type { EcosystemReport, RepoInfo } from './ecosystem';

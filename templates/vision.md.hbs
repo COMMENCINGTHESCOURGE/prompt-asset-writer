@@ -1,0 +1,49 @@
+# MANIFOLD Vision
+
+> **Field computation. Not a game engine. A continuity engine.**
+
+## The Core Insight
+
+Traditional software is built on discrete components: entities, components, systems (ECS). Objects exist at points, move along paths, and interact through collisions.
+
+Field computation is different. Everything is a **continuous tensor field**. A terrain isn't a mesh — it's a density field with cohesion and permeability channels. A character isn't an entity at (x,y,z) — it's a local maximum in the density field with a gradient defining its velocity. A building isn't a damaged/undamaged flag — it's a region of the material tensor with reduced cohesion.
+
+## Why This Matters
+
+| Domain | Discrete Approach | Field Approach |
+|--------|------------------|----------------|
+| Terrain | Heightmap + LOD | 6-channel tensor, erosion physics |
+| Games | ECS + physics engine | Tensor ECS, gradient agents |
+| Simulation | Grid + particle systems | Conservation-enforced field computation |
+| AI | Behavior trees + navmesh | Gradient-following agents, field awareness |
+| Number Theory | Sieve + search | Stride-24 corridor, vinculum constraints |
+
+## The MANIFOLD Ecosystem
+
+```
+hyperpoly-terrain (GPU substrate)
+    ↓
+flux-chamber (runtime layer)
+    ↓
+aetherion-continuum (planet-scale)
+    ↓
+trench-builder (open world demo)
+    ↓
+guinea-pig-trench-portal (browser games)
+    ↓
+prompt-asset-writer (documentation vinculum)
+    ↓
+erdos-straus-solver (mathematical research)
+```
+
+Each layer is a vinculum — it preserves something (the field computation model) and sacrifices something (domain-specific optimizations). The ecosystem is the set of all vinculums that share the same algebraic skeleton.
+
+## Vinculum Principles
+
+1. **Every operation is a ratio**. A vinculum is a bar between two terms. The top is what you want, the bottom is what you have, the bar is the transformation.
+
+2. **Every design is a tradeoff**. Every vinculum preserves something and sacrifices something. Document both.
+
+3. **The substrate changes, the computation doesn't**. The same 6-channel tensor that simulates terrain also calibrates LiDAR arrays, coordinates drone swarms, and documents legal cases.
+
+4. **Continuity is not a feature. It's the platform.**
