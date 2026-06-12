@@ -1,0 +1,136 @@
+---
+title: "Reproduction Prompt: {{paper_title}}"
+type: "reproduction-prompt"
+style: "technical"
+---
+
+# Reproduce: {{paper_title}}
+
+**Original Paper:** {{citation}}
+**Year:** {{year}}
+**Venue:** {{venue}}
+**Code Repo:** {{repo_url}}
+**Build Status:** {{build_status}}
+**Modern Successor:** {{modern_successor}}
+
+---
+
+## Objective
+Reproduce the core result: **{{core_claim}}**
+
+Benchmark: {{benchmark_metric}} on {{dataset}}
+
+---
+
+## Environment Specification
+
+```yaml
+# Original (legacy)
+original_env:
+  framework: {{original_framework}}
+  python: "{{python_version}}"
+  cuda: "{{cuda_version}}"
+  dependencies:
+{{#each original_deps}}
+    - {{this}}
+{{/each}}
+
+# Modern (recommended)
+modern_env:
+  framework: "{{modern_framework}}"
+  python: "3.10+"
+  cuda: "11.8+"
+  dependencies:
+{{#each modern_deps}}
+    - {{this}}
+{{/each}}
+```
+
+---
+
+## Data Requirements
+
+| Dataset | Source | Size | Access |
+|---------|--------|------|--------|
+{{#each datasets}}
+| {{name}} | {{source}} | {{size}} | {{access}} |
+{{/each}}
+
+**Download commands:**
+```bash
+{{download_commands}}
+```
+
+---
+
+## Reproduction Steps
+
+### 1. Environment Setup
+```bash
+# Modern stack (recommended)
+conda create -n {{env_name}} python=3.10
+conda activate {{env_name}}
+pip install {{modern_pip_deps}}
+# or
+conda env create -f environment.yml
+```
+
+### 2. Data Preparation
+```bash
+{{data_prep_commands}}
+```
+
+### 3. Training
+```bash
+{{train_command}}
+```
+Expected time: {{train_time}} on {{gpu_spec}}
+Checkpoints saved to: {{checkpoint_path}}
+
+### 4. Evaluation
+```bash
+{{eval_command}}
+```
+Expected metric: {{expected_metric}}
+
+### 5. Visualization / Analysis
+```bash
+{{viz_commands}}
+```
+
+---
+
+## Vinculum Verification Checklist
+
+- [ ] **GOVERNOR**: Code builds from source
+- [ ] **GOVERNOR**: Benchmark reproduces within 5% of paper
+- [ ] **GOVERNOR**: Pre-trained weights load and infer
+- [ ] **GAUGE**: Paper metrics plausible but unverified
+- [ ] **BREACH**: Framework dead / build fails / data unavailable
+
+---
+
+## Known Issues / Workarounds
+
+{{#each issues}}
+- **{{title}}**: {{description}}
+  - Fix: {{fix}}
+{{/each}}
+
+---
+
+## Modern Alternatives
+
+| Model | Repo | Framework | Advantage |
+|-------|------|-----------|-----------|
+{{#each alternatives}}
+| {{name}} | {{repo}} | {{framework}} | {{advantage}} |
+{{/each}}
+
+---
+
+## References
+
+- Original: {{paper_url}}
+- Code: {{repo_url}}
+- Modern: {{modern_urls}}

@@ -1,0 +1,166 @@
+---
+title: "GPU Kompress-base Field Compression"
+type: "wgsl-shader"
+style: "technical"
+---
+
+# {{title}} — GPU Compute Shader for aetherion-continuum
+
+## Purpose
+Compress sparse field data (SparseNode arrays, field tensors, gradient buffers) on GPU using learned basis projection inspired by Headroom's Kompress-base model.
+
+## Architecture
+
+```
+Input Field/Sparse Data → ContentType Detection → Basis Projection → Residual Quantization → CompressedBlock
+                                                              ↓
+                                                    CCR Store (for reversibility)
+```
+
+## Shader: `gpu_kompress.wgsl`
+
+### Bindings (group 0)
+| Binding | Resource | Purpose |
+|---------|----------|---------|
+| 0 | `input_data: array<f32>` (read) | Source field/sparse elements |
+| 1 | `basis_vectors: array<f32>` (read) | Pre-trained basis (loaded from host) |
+| 2 | `compress_params: CompressParams` (uniform) | Config: block_size, basis_dim, quant_bits |
+| 3 | `compressed_blocks: array<CompressedBlock>` (read_write) | Output compressed blocks |
+| 4 | `compress_stats: CompressStats` (read_write) | Atomic counters for ratio/error |
+
+### Key Constants
+```wgsl
+const BASIS_DIM: u32 = 64u;           // Latent dimension
+const BLOCK_SIZE: u32 = 256u;         // Elements per compression block  
+const QUANT_BITS: u32 = 8u;           // Residual quantization (256 levels)
+const MAX_RESIDUAL: f32 = 1.0;        // Clipping threshold
+const COHERENCE_THRESH: f32 = 0.01;   // Skip if already coherent
+```
+
+### Entry Points
+| Function | Workgroup | Purpose |
+|----------|-----------|---------|
+| `gpu_kompress_compress` | 64 threads | Compress field/sparse blocks |
+| `gpu_kompress_decompress` | 64 threads | Reconstruct from CompressedBlock |
+| `gpu_kompress_collect_stats` | 1 thread | Compute avg compression ratio |
+
+### Data Structures
+
+```wgsl
+struct CompressParams {
+    total_elements: u32,
+    block_size: u32,
+    basis_dim: u32,
+    quant_bits: u32,
+    max_residual: f32,
+    coherence_thresh: f32,
+    content_type: u32,  // 0=field, 1=sparse, 2=gradient, 3=hash
+}
+
+struct CompressedBlock {
+    basis_indices: array<u16, 4>,    // Top-4 basis vector indices
+    residual_quant: array<u8, 256>,  // Quantized residual per element
+    residual_scale: f32,             // Dequantization scale
+    coherence: f32,                  // Input coherence (0-1)
+    original_norm: f32,              // L2 norm of original block
+}
+
+struct BasisVector {
+    weights: array<f32, 256>,        // Basis vector (BLOCK_SIZE)
+}
+```
+
+### Pipeline Integration
+
+Add to `ZeroSyncDispatch`:
+
+```rust
+// In ShaderModules
+pub gpu_kompress: wgpu::ShaderModule,
+
+// In run()
+let gpu_kompress_src = include_str!("../../core/gpu_kompress.wgsl");
+gpu_kompress: device.create_shader_module(...),
+
+// Create pipeline
+let kompress_bgl = device.create_bind_group_layout(...);
+let kompress_pipeline = device.create_compute_pipeline(&ComputePipelineDescriptor {
+    label: Some("gpu_kompress"),
+    layout: Some(&kompress_pipeline_layout),
+    module: &shader_modules.gpu_kompress,
+    entry_point: "gpu_kompress_compress",
+});
+
+// Dispatch in frame (after field_tensor, before conservation)
+{
+    let mut cpass = encoder.begin_compute_pass(...);
+    cpass.set_pipeline(&self.kompress_pipeline);
+    cpass.set_bind_group(0, &self.kompress_bind_group, &[]);
+    cpass.dispatch_workgroups(num_blocks, 1, 1);
+}
+```
+
+### ContentType Routing
+
+| ContentType | Detection | Basis Source | Use Case |
+|-------------|-----------|--------------|----------|
+| 0 (field) | `field.x != 0` | Global PCA on field tensors | Dense field compression |
+| 1 (sparse) | `nodes[].active == 1` | SparseNode PCA (morton + depth) | Sparse octree compression |
+| 2 (gradient) | `length(grad.xyz) > 0` | Gradient PCA | Gradient field compression |
+| 3 (hash) | `hash_table[].next != 0` | Spatial hash patterns | Hash table compression |
+
+### Reversibility (CCR-style)
+
+- Original stored implicitly: `basis_indices + residual_quant + residual_scale`
+- Exact reconstruction: `dequantize(residual) + sum(basis[basis_indices])`
+- Quality metric: `reconstruction_error = ||original - reconstructed|| / ||original||`
+- Target: <1% error for field, <0.1% for sparse nodes
+
+### Performance Targets
+
+| Metric | Target | Measurement |
+|--------|--------|-------------|
+| Compression ratio | 4-8x | `original_bytes / compressed_bytes` |
+| Reconstruction error | <1% | L2 relative error |
+| Latency | <1ms/block | GPU timestamp queries |
+| Throughput | >10M elements/s | `total_elements / frame_time` |
+
+### Host-Side Basis Training
+
+```python
+# Offline: compute PCA basis from field snapshots
+from sklearn.decomposition import PCA
+import numpy as np
+
+snapshots = load_field_snapshots()  # (N, 256)
+pca = PCA(n_components=64).fit(snapshots)
+basis = pca.components_.astype(np.float32)  # (64, 256)
+save_to_gpu_buffer(basis)
+```
+
+### Verification
+
+```rust
+// In aetherion --verify-profs
+// Check reconstruction error per frame
+let error = compute_reconstruction_error(
+    &original_field, 
+    &reconstructed_field
+);
+assert!(error < 0.01);
+```
+
+## Dependencies
+- aetherion-continuum core WGSL modules
+- wgpu 22.0+ (indirect dispatch, storage buffers)
+- Pre-trained basis vectors (host-loaded)
+
+## Vinculum Classification
+- Pipeline integration: **GOVERNOR** (follows five-pillar pattern)
+- Mathematical basis: **GOVERNOR** (PCA projection, quantization theory)
+- Reversibility: **GOVERNOR** (CCR-style exact reconstruction)
+- Performance: **GAUGE** (needs GPU benchmark)
+
+---
+
+*Generated for prompt-asset-writer toolchain*

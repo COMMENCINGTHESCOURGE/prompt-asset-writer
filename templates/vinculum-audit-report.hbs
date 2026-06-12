@@ -1,0 +1,78 @@
+---
+title: "Vinculum Audit Report Generator"
+type: "audit-report"
+style: "technical"
+---
+
+# {{title}} - Vinculum Audit Report
+
+## Target
+**Repo:** {{repo_url}}
+**Commit:** {{commit_hash}}
+**Auditor:** vinculum-self-audit v0.1.0-alpha
+
+## Methodology
+Deletion-test verification: Every claim in documentation traced to ground truth in:
+1. Benchmark suite definitions (code)
+2. Dataset ground truth (HF dataset sources + answer fields)
+3. Code existence verification (grep for implementations)
+
+## Classification Criteria
+
+| Label | Definition |
+|-------|------------|
+| **GOVERNOR** | Claim verified against source code / ground truth data |
+| **GAUGE** | Claim plausible but uses different metrics / not reproducible |
+| **BREACH** | Claim contradicted by evidence or unfalsifiable |
+
+## Mod9 × CHROMA CASCADE Classification
+
+```
+mod9 = 0 (CHROMA INFRARED) → Self-destructive / contradictory claims
+mod9 = 3,6 (BREACH corridors) → x3 universal breach detector triggered
+mod9 = 1,2,4,5,7,8 → Standard verification corridors
+```
+
+## Audit Results Summary
+
+| Category | Claims | GOVERNOR | GAUGE | BREACH |
+|----------|--------|----------|-------|--------|
+| {{category_1_name}} | {{category_1_total}} | {{category_1_gov}} | {{category_1_gauge}} | {{category_1_breach}} |
+| {{category_2_name}} | {{category_2_total}} | {{category_2_gov}} | {{category_2_gauge}} | {{category_2_breach}} |
+| {{category_3_name}} | {{category_3_total}} | {{category_3_gov}} | {{category_3_gauge}} | {{category_3_breach}} |
+
+## Detailed Findings
+
+### {{category_1_name}}
+
+{{#each category_1_findings}}
+**Claim {{index}}:** {{claim}}
+- **Source:** {{source}}
+- **Verification:** {{verification}}
+- **Status:** {{status}}
+- **Evidence:** {{evidence}}
+{{/each}}
+
+### {{category_2_name}}
+
+{{#each category_2_findings}}
+**Claim {{index}}:** {{claim}}
+- **Source:** {{source}}
+- **Verification:** {{verification}}
+- **Status:** {{status}}
+- **Evidence:** {{evidence}}
+{{/each}}
+
+## Required Actions for GOVERNOR Upgrade
+
+{{#each actions}}
+- [ ] **{{action}}** → Creates `{{output_file}}`
+{{/each}}
+
+## Vinculum Verdict
+
+**Overall:** {{overall_status}} — {{reasoning}}
+
+## Recommendation
+
+{{recommendation}}
